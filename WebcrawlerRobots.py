@@ -99,11 +99,13 @@ def AllowedSite(URL) -> bool:
     
     return True
 
-def Parse_Robots(robotsURL):
+def Parse_Robots(robotsURL, Allowed):
+    print(robotsURL)
     robots = requests.get(robotsURL, stream=True)
     if (robots):
         for line in robots.iter_lines(decode_unicode=True):
             line = str(line)
+            print(line)
             if (re.match("(Allow):", line)):
                 Allowed.append(line.split(':', maxsplit= 1)[1])
 
@@ -111,58 +113,59 @@ def main():
     websites = input("Input Initial Browsers to search, separated by a comma\n")
     websites = websites.split(",")
     
-    Headers_ = input("Input Data Headers, separated by a comma. URLs are automatically collected\n")
-    Headers = Headers_.split(",")
+    # Headers_ = input("Input Data Headers, separated by a comma. URLs are automatically collected\n")
+    # Headers = Headers_.split(",")
 
-    print(len(Headers))
-    print("Input Expected HTML Classes individually. Should be the same as data headers")
-    while len(Classes) != len(Headers):
-        Classes.append(input())
+    # print(len(Headers))
+    # print("Input Expected HTML Classes individually. Should be the same as data headers")
+    # while len(Classes) != len(Headers):
+    #     Classes.append(input())
 
     for website in websites:
         curSite = re.search("www\..+\.(com|edu|gov)", website)
+        print(curSite)
         #Check if website has /robots.txt file
         if curSite:
-            curSite += "/robots.txt"
-            
+
             Allowed.clear()
             visited.clear()
-            Parse_Robots(curSite)
+            Parse_Robots(curSite.string + "/robots.txt", Allowed)
+            print(Allowed)
 
         urls.add(website)
             
-        ## Keep going until subdomains are all searched and until all threads have finished
-        while len(urls) != 0 or len(threading.enumerate()) > 1:
-                ## Make a new thread if less than 5 currently active and valid URLs to pull
-            if (len(threading.enumerate()) <= 5 and len(urls) > 0):
-                ## get the current url 
-                urlLock.acquire()
-                curUrl = urls.pop()
+    #     ## Keep going until subdomains are all searched and until all threads have finished
+    #     while len(urls) != 0 or len(threading.enumerate()) > 1:
+    #             ## Make a new thread if less than 5 currently active and valid URLs to pull
+    #         if (len(threading.enumerate()) <= 5 and len(urls) > 0):
+    #             ## get the current url 
+    #             urlLock.acquire()
+    #             curUrl = urls.pop()
                     
-                ## If not an allowed site, continue with other URLS
-                if (not AllowedSite(curUrl)):
-                    urlLock.release()
-                    continue
+    #             ## If not an allowed site, continue with other URLS
+    #             if (not AllowedSite(curUrl)):
+    #                 urlLock.release()
+    #                 continue
 
-                visited.append(curUrl)
-                urlLock.release()
+    #             visited.append(curUrl)
+    #             urlLock.release()
 
-                ## Create new Thread
-                Thread(target=ScalpData, name = threading.current_thread(), args=[curUrl, website, Headers, Classes], daemon = True).start()
+    #             ## Create new Thread
+    #             Thread(target=ScalpData, name = threading.current_thread(), args=[curUrl, website, Headers, Classes], daemon = True).start()
                 
-                productLock.acquire()
-                print(len(products))
-                productLock.release()
+    #             productLock.acquire()
+    #             print(len(products))
+    #             productLock.release()
         
 
             
             
-    #write to csv
-    with open("Test-Products-Threading.csv", 'w', newline='') as csvfile:
-        writerCSV = csv.DictWriter(csvfile, fieldnames=Headers)
-        writerCSV.writeheader()
-        for product in products:
-            writerCSV.writerow(product)
+    # #write to csv
+    # with open("Test-Products-Threading.csv", 'w', newline='') as csvfile:
+    #     writerCSV = csv.DictWriter(csvfile, fieldnames=Headers)
+    #     writerCSV.writeheader()
+    #     for product in products:
+    #         writerCSV.writerow(product)
 
 if __name__=="__main__":
     main()    
